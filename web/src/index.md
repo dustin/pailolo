@@ -31,7 +31,7 @@ const divisions = [...new Set(allResults.filter(d => selectedContests.includes(d
 const divisionInput = Inputs.checkbox(divisions, {
   multiple: true,
   label: "Age Group",
-  default: divisions});
+  value: divisions});
 
 const selectedDivisions = Generators.input(divisionInput);
 ```
@@ -48,9 +48,10 @@ contestInput
 divisionInput
 ```
 
+Select some racers whose trails you'd like to see.
 
 ```js
-const selection = view(Inputs.table([...filteredResults].sort((a, b) => {
+const table = Inputs.table([...filteredResults].sort((a, b) => {
     if (a.place == null && b.place == null) return 0;
     if (a.place == null) return 1;
     if (b.place == null) return -1;
@@ -75,12 +76,25 @@ const selection = view(Inputs.table([...filteredResults].sort((a, b) => {
       age_group_rank: "Age Group Rank",
       gun_time_seconds: "Gun Time",
       finished: "Finish Time",
-      },
-      format: {
-        finished: fmt.time,
-        gun_time_seconds: fmt.seconds,
-      },
-      required: false}))
+    },
+    format: {
+      finished: fmt.time,
+      gun_time_seconds: fmt.seconds,
+    },
+    required: false,
+    select: true,
+  });
+
+table.querySelectorAll("tbody tr").forEach((tr) => {
+  tr.addEventListener("click", (event) => {
+    if (event.target.tagName === "INPUT") return;
+    const checkbox = tr.querySelector('input[type="checkbox"]');
+    if (checkbox) checkbox.click();
+  });
+  tr.style.cursor = "pointer";
+});
+
+const selection = view(table);
 ```
 
 ```js
