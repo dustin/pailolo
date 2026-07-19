@@ -25,6 +25,7 @@ export async function fetchTrails(f) {
         return {
           ...d,
           ts: ts,
+          tsi: +ts,
         };
       })
     )

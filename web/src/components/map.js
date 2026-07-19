@@ -94,6 +94,33 @@ export function findFastest1kSegment(data) {
   return bestSegment;
 }
 
+// Find the reading in `data` whose tsi (numeric timestamp) is closest to
+// `targetTsi`. Assumes `data` is sorted ascending by tsi, which holds for
+// normal run/track data. Returns { reading, index } or null if data is empty.
+function findClosestByTime(data, targetTsi) {
+  if (!data || !data.length) return null;
+
+  let lo = 0;
+  let hi = data.length - 1;
+
+  if (targetTsi <= data[0].tsi) return { reading: data[0], index: 0 };
+  if (targetTsi >= data[hi].tsi) return { reading: data[hi], index: hi };
+
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (data[mid].tsi < targetTsi) lo = mid + 1;
+    else hi = mid;
+  }
+
+  const after = data[lo];
+  const before = data[lo - 1];
+  if (!before) return { reading: after, index: lo };
+
+  return targetTsi - before.tsi <= after.tsi - targetTsi
+    ? { reading: before, index: lo - 1 }
+    : { reading: after, index: lo };
+}
+
 export function renderRun(width, datas, callouts = [], opts = { fastestSegments: null }) {
   const colorizers = opts.colorizers || datas.map(data => speedColor(data.map(d => d.speed)));
   const height = width * 0.5;
@@ -323,6 +350,9 @@ export function renderRun(width, datas, callouts = [], opts = { fastestSegments:
     // Add hover behavior to data points
     dots
       .on('mouseenter', function (event, d) {
+        // Clear any stale sync markers from a previous hover
+        runG.selectAll('.time-sync-point').remove();
+
         // Create tooltip
         const tooltip = d3
           .select('body')
@@ -373,6 +403,43 @@ export function renderRun(width, datas, callouts = [], opts = { fastestSegments:
         // Highlight data point
         d3.select(this).attr('stroke-width', 2).attr('opacity', 1);
 
+        // Highlight the nearest-in-time point on every other track, so you
+        // can see where each other run was at roughly the same moment.
+        datas.forEach((otherData, otherIdx) => {
+          if (otherIdx === d.dataset) return;
+
+          const match = findClosestByTime(otherData, d.data.tsi);
+          if (!match) return;
+
+          const p = projection([+match.reading.lon, +match.reading.lat]);
+          if (!p) return;
+
+          runG
+            .append('circle')
+            .attr('class', 'time-sync-point')
+            .attr('cx', p[0])
+            .attr('cy', p[1])
+            .attr('r', dotRadius * 2.2)
+            .attr('fill', '#00e5ff')
+            .attr('fill-opacity', 0.35)
+            .attr('stroke', '#00e5ff')
+            .attr('stroke-width', 2)
+            .style('pointer-events', 'none');
+
+          // Small solid center so the exact point is unambiguous even when
+          // the halo overlaps other dots.
+          runG
+            .append('circle')
+            .attr('class', 'time-sync-point')
+            .attr('cx', p[0])
+            .attr('cy', p[1])
+            .attr('r', Math.max(1.5, dotRadius * 0.6))
+            .attr('fill', '#00e5ff')
+            .attr('stroke', 'white')
+            .attr('stroke-width', 1)
+            .style('pointer-events', 'none');
+        });
+
         // Draw line to nearest land if coordinates are available
         if (d.data.nearest_land_lat && d.data.nearest_land_lon) {
           const landPoint = projection([+d.data.nearest_land_lon, +d.data.nearest_land_lat]);
@@ -420,6 +487,9 @@ export function renderRun(width, datas, callouts = [], opts = { fastestSegments:
         // Remove nearest land line and point
         runG.selectAll('.nearest-land-line').remove();
         runG.selectAll('.nearest-land-point').remove();
+
+        // Remove time-sync markers on other tracks
+        runG.selectAll('.time-sync-point').remove();
 
         // Reset highlight
         d3.select(this).attr('stroke-width', 0).attr('opacity', 0.9);
