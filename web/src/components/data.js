@@ -10,8 +10,8 @@ export async function fetchResults(f) {
         return {
           ...d,
           finished: finished,
-          place: (d.place == null || d.place === -1) ? Infinity : d.place,
-          age_group_rank: (d.age_group_rank == null || d.age_group_rank === -1) ? Infinity : d.age_group_rank,
+          place: (d.place == null || d.place === -1) ? null : d.place,
+          age_group_rank: (d.age_group_rank == null || d.age_group_rank === -1) ? null : d.age_group_rank,
         };
       })
     );
