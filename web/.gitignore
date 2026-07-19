@@ -1,0 +1,8 @@
+.DS_Store
+.direnv
+/dist/
+dist
+node_modules
+node_modules/
+test-output
+yarn-error.log
