@@ -85,12 +85,15 @@ const table = Inputs.table([...filteredResults].sort((a, b) => {
     select: true,
   });
 
+table.querySelector("tbody").addEventListener("click", (event) => {
+  if (event.target.tagName === "INPUT") return;
+  const tr = event.target.closest("tr");
+  if (!tr) return;
+  const checkbox = tr.querySelector('input[type="checkbox"]');
+  if (checkbox) checkbox.click();
+});
+
 table.querySelectorAll("tbody tr").forEach((tr) => {
-  tr.addEventListener("click", (event) => {
-    if (event.target.tagName === "INPUT") return;
-    const checkbox = tr.querySelector('input[type="checkbox"]');
-    if (checkbox) checkbox.click();
-  });
   tr.style.cursor = "pointer";
 });
 
